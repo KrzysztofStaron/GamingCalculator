@@ -15,10 +15,6 @@
 char faces[6][4];
 char currentFace = 0;
 bool rotationY = 1; // 0 - White Top
-char rotationType = 0;
-
-#define LEFT_FACE false
-#define TOP_FACE true
 
 // int16_t color
 char getFace(char num) {
@@ -59,6 +55,38 @@ int16_t numToColor(char num) {
       break;
 
   }
+}
+
+char GetButton12(bool rotateButton = false) {
+  for (char i = 4; i <= 7; i++) {
+    if (!digitalRead(i)) {
+      if (digitalRead(3) || rotateButton) {
+        return i - 3;
+      } else if (!digitalRead(3)) {
+        return i + 3; //i - 3 + 6
+      }
+    }
+  }
+
+  if (!digitalRead(14)) {
+    if (digitalRead(3) || rotateButton) {
+      return 5;
+    } else if (!digitalRead(3)) {
+      return 10;
+    }
+  }
+
+  if (!digitalRead(15)) {
+    if (digitalRead(3) || rotateButton) {
+      return 6;
+    } else if (!digitalRead(3)) {
+      return 11;
+    }
+  }
+
+
+
+  return 12;
 }
 
 char slant(char num) {
@@ -112,38 +140,6 @@ char calcRotation(char num) {
   }
 }
 
-char GetButton12(bool rotateButton = false) {
-  for (char i = 4; i <= 7; i++) {
-    if (!digitalRead(i)) {
-      if (digitalRead(3) || rotateButton) {
-        return i - 3;
-      } else if (!digitalRead(3)) {
-        return i + 3; //i - 3 + 6
-      }
-    }
-  }
-
-  if (!digitalRead(14)) {
-    if (digitalRead(3) || rotateButton) {
-      return 5;
-    } else if (!digitalRead(3)) {
-      return 10;
-    }
-  }
-
-  if (!digitalRead(15)) {
-    if (digitalRead(3) || rotateButton) {
-      return 6;
-    } else if (!digitalRead(3)) {
-      return 11;
-    }
-  }
-
-
-
-  return 12;
-}
-
 void ubdateFaces(TFT_ILI9163C display) {
   char Size = 25;
   char block;
@@ -152,7 +148,24 @@ void ubdateFaces(TFT_ILI9163C display) {
     for (char yc = 0 ; yc < 2; yc++) {
       for (char x = MARGIN + xc * Size; x < MARGIN + xc * Size + Size; x++) {
         for (char y = MARGIN + yc * Size ; y < MARGIN + yc * Size + Size; y++) {
-          display.drawPixel(x, y, numToColor(faces[currentFace][block]));
+          if (rotationY == 0) {
+            display.drawPixel(x, y, numToColor(faces[currentFace][block]));
+          } else {
+            switch (block) {
+              case 0:
+                display.drawPixel(x, y, numToColor(faces[currentFace][1]));
+                break;
+              case 1:
+                display.drawPixel(x, y, numToColor(faces[currentFace][0]));
+                break;
+              case 2:
+                display.drawPixel(x, y, numToColor(faces[currentFace][3]));
+                break;
+              case 3:
+                display.drawPixel(x, y, numToColor(faces[currentFace][2]));
+                break;
+            }
+          }
         }
       }
       block++;
@@ -172,8 +185,8 @@ void ubdateFaces(TFT_ILI9163C display) {
         display.drawPixel(i, i + y, numToColor(faces[getFace(currentFace)][block]));
         display.drawPixel(i, i + y + Size, numToColor(faces[getFace(currentFace)][block + 1]));
       } else {
-        display.drawPixel(i, i + y, numToColor(faces[getFace(currentFace)][2 - block]));
-        display.drawPixel(i, i + y + Size, numToColor(faces[getFace(currentFace)][3 - block]));
+        display.drawPixel(i, i + y, numToColor(faces[getFace(currentFace)][block + 1]));
+        display.drawPixel(i, i + y + Size, numToColor(faces[getFace(currentFace)][block]));
       }
     }
   }
@@ -221,6 +234,7 @@ void setupRubic(TFT_ILI9163C display) {
       faces[i][o] = i;
     }
   }
+  faces[0][0] = 4;
 
   display.fillScreen(0x6690);
   Serial.println("Loaded: rubic");
@@ -236,14 +250,12 @@ void rotate() {
     } else  {
       currentFace++;
     }
-    rotationType = 1;
   } else if (button == 4) {
     if (currentFace - 1 < 0) {
       currentFace = 3;
     } else {
       currentFace--;
     }
-    rotationType = -1;
   } else if (button == 3 || button == 2) {
     if (rotationY == 0) {
       rotationY = 1;
